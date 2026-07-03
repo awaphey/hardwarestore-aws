@@ -165,6 +165,16 @@ resource "aws_network_acl" "public" {
     to_port    = 5000
   }
 
+  # Outbound: HTTPS to internet (NAT Gateway forwards EC2 SSM/API calls)
+  egress {
+    rule_no    = 105
+    protocol   = "tcp"
+    action     = "allow"
+    cidr_block = "0.0.0.0/0"
+    from_port  = 443
+    to_port    = 443
+  }
+
   # Outbound: ephemeral ports to internet (response traffic back to clients)
   egress {
     rule_no    = 110
