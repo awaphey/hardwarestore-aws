@@ -62,7 +62,7 @@ except Exception as _cw_err:  # noqa: BLE001
 # ---------------------------------------------------------------------------
 # AWS Secrets Manager — fetch DB credentials + Flask secret at startup
 # ---------------------------------------------------------------------------
-_cached_secret: dict | None = None
+_cached_secret = None  # type: dict
 
 
 def _get_secret() -> dict:
