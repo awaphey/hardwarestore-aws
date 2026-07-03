@@ -34,7 +34,7 @@ resource "aws_sns_topic" "alerts" {
 # -----------------------------------------------------------------------------
 resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
   alarm_name          = "${var.project_name}-rds-cpu-high"
-  alarm_description   = "RDS CPU utilisation exceeded 80% — potential performance or security issue"
+  alarm_description   = "RDS CPU utilisation exceeded 80% - potential performance or security issue"
   namespace           = "AWS/RDS"
   metric_name         = "CPUUtilization"
   dimensions          = { DBInstanceIdentifier = var.rds_identifier }
@@ -50,23 +50,5 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
   tags = { Name = "${var.project_name}-alarm-rds-cpu" }
 }
 
-# -----------------------------------------------------------------------------
-# Alarm: ALB 5xx error rate — detects application errors or attack activity
-# Fires when 5xx count exceeds 10 in a single 5-minute window
-# -----------------------------------------------------------------------------
-resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
-  alarm_name          = "${var.project_name}-alb-5xx-high"
-  alarm_description   = "ALB HTTP 5xx errors exceeded 10 — potential app failure or attack"
-  namespace           = "AWS/ApplicationELB"
-  metric_name         = "HTTPCode_ELB_5XX_Count"
-  dimensions          = { LoadBalancer = var.alb_arn_suffix }
-  statistic           = "Sum"
-  period              = 300
-  evaluation_periods  = 1
-  threshold           = 10
-  comparison_operator = "GreaterThanThreshold"
-  treat_missing_data  = "notBreaching"
-  alarm_actions       = [aws_sns_topic.alerts.arn]
-
-  tags = { Name = "${var.project_name}-alarm-alb-5xx" }
-}
+# ALB 5xx alarm is created in root main.tf to avoid circular dependency
+# (monitoring -> compute -> iam -> monitoring)

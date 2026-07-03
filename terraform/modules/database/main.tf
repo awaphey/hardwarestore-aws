@@ -16,7 +16,7 @@ data "aws_caller_identity" "current" {}
 # Customer-managed key gives full auditability via CloudTrail.
 # -----------------------------------------------------------------------------
 resource "aws_kms_key" "rds" {
-  description             = "KMS key for RDS PostgreSQL encryption at rest — ${var.project_name}"
+  description             = "KMS key for RDS PostgreSQL encryption at rest - ${var.project_name}"
   deletion_window_in_days = 7
   enable_key_rotation     = true   # Automatic annual key rotation (security best practice)
   multi_region            = false
@@ -34,7 +34,7 @@ resource "aws_kms_alias" "rds" {
 # -----------------------------------------------------------------------------
 resource "aws_db_subnet_group" "main" {
   name        = "${var.project_name}-db-subnet-group"
-  description = "Subnet group for ${var.project_name} RDS — private DB subnets only"
+  description = "Subnet group for ${var.project_name} RDS - private DB subnets only"
   subnet_ids  = var.db_subnet_ids
 
   tags = { Name = "${var.project_name}-db-subnet-group" }
@@ -88,7 +88,7 @@ resource "aws_db_instance" "main" {
 
   # Performance and monitoring
   performance_insights_enabled = true
-  monitoring_interval          = 60   # Enhanced monitoring every 60s
+  monitoring_interval          = 0    # Enhanced monitoring disabled (no monitoring role configured)
 
   # Lifecycle — set deletion_protection=true and skip_final_snapshot=false in production
   deletion_protection       = false

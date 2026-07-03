@@ -13,7 +13,3 @@ variable "rds_identifier" {
   type        = string
 }
 
-variable "alb_arn_suffix" {
-  description = "ALB ARN suffix (used in CloudWatch metric dimensions)"
-  type        = string
-}

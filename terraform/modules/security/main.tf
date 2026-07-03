@@ -59,19 +59,11 @@ resource "aws_security_group" "app" {
   vpc_id      = var.vpc_id
 
   ingress {
-    description     = "Flask app port — from ALB only (least-privilege ingress)"
+    description     = "Flask app port - from ALB only (least-privilege ingress)"
     from_port       = 5000
     to_port         = 5000
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
-  }
-
-  egress {
-    description     = "PostgreSQL to DB tier only"
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.db.id]
   }
 
   egress {
@@ -95,17 +87,28 @@ resource "aws_security_group" "db" {
   description = "DB tier: allow PostgreSQL (5432) from app tier only; no egress"
   vpc_id      = var.vpc_id
 
-  ingress {
-    description     = "PostgreSQL from app tier only (Risk 1 + Risk 2 mitigation)"
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.app.id]
-  }
-
-  # No egress rule = AWS default deny-all outbound for this SG
-
   tags = { Name = "${var.project_name}-sg-db" }
+}
+
+# Separate rules to avoid circular SG dependency
+resource "aws_security_group_rule" "app_to_db_egress" {
+  type                     = "egress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.app.id
+  source_security_group_id = aws_security_group.db.id
+  description              = "PostgreSQL to DB tier only"
+}
+
+resource "aws_security_group_rule" "db_from_app_ingress" {
+  type                     = "ingress"
+  from_port                = 5432
+  to_port                  = 5432
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.db.id
+  source_security_group_id = aws_security_group.app.id
+  description              = "PostgreSQL from app tier only (Risk 1 + Risk 2 mitigation)"
 }
 
 # =============================================================================

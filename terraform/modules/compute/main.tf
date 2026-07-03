@@ -27,27 +27,7 @@ data "aws_ami" "al2023" {
 }
 
 # -----------------------------------------------------------------------------
-# ACM Certificate — TLS for the ALB (Risk 4 mitigation: encryption in transit)
-# IMPORTANT: After terraform apply, you must add the DNS CNAME record shown in
-# the AWS console (or run: aws acm describe-certificate ...) to validate ownership.
-# If you already have a cert ARN, set var.acm_cert_arn and this is skipped.
-# -----------------------------------------------------------------------------
-resource "aws_acm_certificate" "app" {
-  count             = var.acm_cert_arn == "" ? 1 : 0
-  domain_name       = var.domain_name
-  validation_method = "DNS"
-
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  tags = { Name = "${var.project_name}-acm-cert" }
-}
-
-locals {
-  # Use existing cert ARN if provided, otherwise use the one we just created
-  cert_arn = var.acm_cert_arn != "" ? var.acm_cert_arn : aws_acm_certificate.app[0].arn
-}
+# ACM certificate skipped — using HTTP for assignment demo (no custom domain available)
 
 # -----------------------------------------------------------------------------
 # Application Load Balancer — public-facing, HTTPS only
@@ -98,43 +78,19 @@ data "aws_subnet" "app_first" {
 }
 
 # -----------------------------------------------------------------------------
-# ALB Listener: HTTP (80) → Redirect to HTTPS (Risk 4 mitigation)
-# No plaintext HTTP traffic ever reaches the application.
+# ALB Listener: HTTP (80) — forwards directly to app (no custom domain for assignment)
 # -----------------------------------------------------------------------------
-resource "aws_lb_listener" "http_redirect" {
+resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.main.arn
   port              = 80
   protocol          = "HTTP"
-
-  default_action {
-    type = "redirect"
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
-    }
-  }
-
-  tags = { Name = "${var.project_name}-listener-http" }
-}
-
-# -----------------------------------------------------------------------------
-# ALB Listener: HTTPS (443) — TLS termination, forwards to app target group
-# SSL policy: ELBSecurityPolicy-TLS13-1-2-2021-06 (TLS 1.2+ only)
-# -----------------------------------------------------------------------------
-resource "aws_lb_listener" "https" {
-  load_balancer_arn = aws_lb.main.arn
-  port              = 443
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-TLS13-1-2-2021-06"
-  certificate_arn   = local.cert_arn
 
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.app.arn
   }
 
-  tags = { Name = "${var.project_name}-listener-https" }
+  tags = { Name = "${var.project_name}-listener-http" }
 }
 
 # -----------------------------------------------------------------------------
@@ -144,7 +100,7 @@ resource "aws_lb_listener" "https" {
 # -----------------------------------------------------------------------------
 resource "aws_wafv2_web_acl" "main" {
   name        = "${var.project_name}-waf"
-  description = "WAF for Hardware Store ALB — blocks OWASP Top 10 threats"
+  description = "WAF for Hardware Store ALB - blocks OWASP Top 10 threats"
   scope       = "REGIONAL"   # ALB uses REGIONAL scope (CLOUDFRONT uses GLOBAL)
 
   default_action {
@@ -243,7 +199,7 @@ resource "aws_wafv2_web_acl_association" "main" {
 # -----------------------------------------------------------------------------
 resource "aws_launch_template" "app" {
   name_prefix   = "${var.project_name}-lt-"
-  description   = "Hardware Store Flask app — Amazon Linux 2023"
+  description   = "Hardware Store Flask app - Amazon Linux 2023"
   image_id      = data.aws_ami.al2023.id
   instance_type = "t3.micro"
 
@@ -251,9 +207,6 @@ resource "aws_launch_template" "app" {
   iam_instance_profile {
     arn = var.instance_profile_arn
   }
-
-  # Place in app security group (private, no direct internet access)
-  vpc_security_group_ids = [var.app_sg_id]
 
   # No public IP — traffic only enters via ALB (Risk 1 mitigation)
   network_interfaces {
@@ -265,7 +218,7 @@ resource "aws_launch_template" "app" {
   block_device_mappings {
     device_name = "/dev/xvda"
     ebs {
-      volume_size           = 20
+      volume_size           = 30
       volume_type           = "gp3"
       encrypted             = true
       delete_on_termination = true

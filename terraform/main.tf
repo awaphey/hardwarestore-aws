@@ -57,9 +57,8 @@ module "monitoring" {
   project_name   = var.project_name
   environment    = var.environment
   rds_identifier = module.database.rds_identifier
-  alb_arn_suffix = module.compute.alb_arn_suffix
 
-  depends_on = [module.database, module.compute]
+  depends_on = [module.database]
 }
 
 # =============================================================================
@@ -75,6 +74,27 @@ module "iam" {
   log_group_arn = module.monitoring.log_group_arn
 
   depends_on = [module.monitoring]
+}
+
+# ALB 5xx alarm — created here (not in monitoring module) to avoid
+# circular dependency: monitoring->compute->iam->monitoring
+resource "aws_cloudwatch_metric_alarm" "alb_5xx" {
+  alarm_name          = "${var.project_name}-alb-5xx-high"
+  alarm_description   = "ALB HTTP 5xx errors exceeded 10 - potential app failure or attack"
+  namespace           = "AWS/ApplicationELB"
+  metric_name         = "HTTPCode_ELB_5XX_Count"
+  dimensions          = { LoadBalancer = module.compute.alb_arn_suffix }
+  statistic           = "Sum"
+  period              = 300
+  evaluation_periods  = 1
+  threshold           = 10
+  comparison_operator = "GreaterThanThreshold"
+  treat_missing_data  = "notBreaching"
+  alarm_actions       = [module.monitoring.sns_topic_arn]
+
+  tags = { Name = "${var.project_name}-alarm-alb-5xx" }
+
+  depends_on = [module.compute, module.monitoring]
 }
 
 # =============================================================================
