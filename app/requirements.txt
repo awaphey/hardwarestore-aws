@@ -1,0 +1,17 @@
+# Hardware Store App — AWS Dependencies
+# ======================================
+# Core framework
+Flask==3.1.1
+
+# PostgreSQL driver (replaces pyodbc/MSSQL used in Assignment 1)
+psycopg2-binary==2.9.10
+
+# AWS SDK — used for Secrets Manager (credentials) and CloudWatch (logging)
+boto3==1.38.0
+botocore==1.38.0
+
+# CloudWatch log handler for Python's standard logging module
+watchtower==3.3.1
+
+# Production WSGI server (replaces Flask's built-in dev server)
+gunicorn==23.0.0

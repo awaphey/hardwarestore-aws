@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="section-heading">
+    <h2>Orders</h2>
+    <p>Create customer orders and review recent order activity.</p>
+</section>
+
+<section class="form-panel">
+    <h3>New Order</h3>
+    <form method="post" action="{{ url_for('create_order') }}" class="grid-form">
+        <label>
+            Customer
+            <select name="user_id" required>
+                <option value="">Choose a customer</option>
+                {% for customer in customers %}
+                    <option value="{{ customer.UserID }}">{{ customer.Username }} - {{ customer.Email }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Product
+            <select name="product_id" required>
+                <option value="">Choose a product</option>
+                {% for product in products %}
+                    <option value="{{ product.ProductID }}">
+                        {{ product.ProductName }} - RM {{ "%.2f"|format(product.Price) }} - {{ product.StockQuantity }} in stock
+                    </option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>
+            Quantity
+            <input name="quantity" type="number" min="1" step="1" required>
+        </label>
+        <button type="submit" data-confirm="Create this customer order and update stock levels?">Submit Order</button>
+    </form>
+</section>
+
+<section class="table-panel">
+    <h3>Recent Orders</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Order ID</th>
+                <th>Customer</th>
+                <th>Email</th>
+                <th>Date</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Subtotal</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+                <tr>
+                    <td>{{ order.OrderID }}</td>
+                    <td>{{ order.Username }}</td>
+                    <td>{{ order.Email }}</td>
+                    <td>{{ order.OrderDate }}</td>
+                    <td>{{ order.ProductName }}</td>
+                    <td>{{ order.Quantity }}</td>
+                    <td>RM {{ "%.2f"|format(order.SubtotalPrice) }}</td>
+                    <td>RM {{ "%.2f"|format(order.TotalAmount) }}</td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="8">No customer orders have been recorded yet.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}
